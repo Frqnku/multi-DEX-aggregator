@@ -1,13 +1,17 @@
+use anyhow::Result;
 use ethers::prelude::*;
+use futures::future::join_all;
 use std::sync::Arc;
+
+use crate::config::{Config, TokenConfig};
+mod config;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    let provider = Provider::<Http>::try_from("https://mainnet.infura.io/v3/<API_KEY>")?;
-    let provider = Arc::new(provider);
+    let cfg = Config::from_file("config.json")?;
 
-    let pool_weth_usdc: Address = "0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc".parse()?;
-    let pool_weth_usdt: Address = "0x0d4a11d5EEaaC28EC3F61d100daF4d40471f1852".parse()?;
+    let provider = Provider::<Http>::try_from(cfg.rpc_url.unwrap())?;
+    let provider = Arc::new(provider);
 
     abigen!(
         UniswapV2Pair,
@@ -21,41 +25,69 @@ async fn main() -> anyhow::Result<()> {
     async fn get_price_and_tvl(
         provider: Arc<Provider<Http>>,
         pool: Address,
+        token: Address,
     ) -> anyhow::Result<(f64, f64)> {
         let contract = UniswapV2Pair::new(pool, provider);
         let (reserve0, reserve1, _) = contract.get_reserves().call().await?;
         let token0 = contract.token_0().call().await?;
         let token1 = contract.token_1().call().await?;
 
-        let weth_address: Address = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-            .parse()
-            .unwrap();
-
-        let (reserve_weth, reserve_stable) = if token0 == weth_address {
+        let (reserve_t0, reserve_t1) = if token0 == token {
             (reserve0, reserve1)
-        } else if token1 == weth_address {
+        } else if token1 == token {
             (reserve1, reserve0)
         } else {
-            panic!("Pool does not contain WETH");
+            panic!("Token not found in pool");
         };
-        let reserve_weth_f = reserve_weth as f64 / 1e18;
-        let reserve_stable_f = reserve_stable as f64 / 1e6;
+        let reserve_t0_f = reserve_t0 as f64 / 1e18;
+        let reserve_t1_f = reserve_t1 as f64 / 1e6;
 
-        let price_weth = reserve_stable_f / reserve_weth_f;
-        let tvl = reserve_weth_f * price_weth + reserve_stable_f;
-
-        Ok((price_weth, tvl))
+        let price = reserve_t1_f / reserve_t0_f;
+        let tvl = reserve_t0_f * price + reserve_t1_f;
+        Ok((price, tvl))
     }
 
-    let (price_usdc, tvl_usdc) = get_price_and_tvl(provider.clone(), pool_weth_usdc).await?;
-    let (price_usdt, tvl_usdt) = get_price_and_tvl(provider.clone(), pool_weth_usdt).await?;
+    pub async fn compute_token_price(
+        provider: Arc<Provider<Http>>,
+        token: &TokenConfig,
+    ) -> Result<f64> {
+        let futures = token.pools.iter().map(|pool| {
+            let provider = provider.clone();
+            let pool_addr: Address = pool.address.parse().unwrap();
+            let token_addr: Address = token.token.parse().unwrap();
 
-    let weighted_price = (price_usdc * tvl_usdc + price_usdt * tvl_usdt) / (tvl_usdc + tvl_usdt);
+            async move { get_price_and_tvl(provider.clone(), pool_addr, token_addr).await }
+        });
 
-    println!("Prix WETH en usdc {}", price_usdc * tvl_usdc / tvl_usdc);
-    println!("Prix WETH en usdt {}", price_usdt * tvl_usdt / tvl_usdt);
+        let results: Vec<Result<(f64, f64)>> = join_all(futures).await;
 
-    println!("Prix WETH pondéré: {:.2}", weighted_price);
+        let valid = results
+            .into_iter()
+            .inspect(|e| eprintln!("Erreur: {e:?}"))
+            .filter_map(|res| res.ok())
+            .collect::<Vec<_>>();
+
+        if valid.is_empty() {
+            anyhow::bail!("No pool returned valid data for token {}", token.name);
+        }
+
+        let mut total_tvl = 0.0;
+        let mut weighted_sum = 0.0;
+
+        for (price, tvl) in valid {
+            total_tvl += tvl;
+            weighted_sum += price * tvl;
+        }
+
+        let weighted_price = weighted_sum / total_tvl;
+
+        Ok(weighted_price)
+    }
+
+    for token in &cfg.tokens {
+        let price = compute_token_price(provider.clone(), token).await?;
+        println!("Token {} : {:.6} USD", token.name, price);
+    }
 
     Ok(())
 }
