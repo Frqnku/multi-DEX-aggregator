@@ -1,0 +1,44 @@
+{
+  "backend": "rpc",
+  "rpc_url": "https://mainnet.infura.io/v3/<YOUR_INFURA_PROJECT_ID>",
+
+  "tokens": [
+    {
+      "name": "WETH",
+      "token": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+      "pools": [
+        {
+          "name": "weth_usdt",
+          "address": "0x0d4a11d5eeaac28ec3f61d100daf4d40471f1852",
+          "protocol": "uniswap_v2"
+        },
+        {
+          "name": "weth_usdc",
+          "address": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
+          "protocol": "uniswap_v2"
+        },
+        {
+          "name": "weth_usdc",
+          "address": "0x397ff1542f962076d0bfe58ea045ffa2d347aca0",
+          "protocol": "sushiswap"
+        },
+        {
+          "name": "weth_usdc",
+          "address": "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8",
+          "protocol": "uniswap_v3"
+        }
+      ]
+    },
+    {
+      "name": "UNI",
+      "token": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",
+      "pools": [
+        {
+          "name": "uni_usdc",
+          "address": "0xebfb684dd2b01e698ca6c14f10e4f289934a54d6",
+          "protocol": "uniswap_v2"
+        }
+      ]
+    }
+  ]
+}
