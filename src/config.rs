@@ -23,6 +23,8 @@ pub struct PoolConfig {
     pub protocol: String,
 }
 
+const SUPPORTED_PROTOCOLS: [&str; 3] = ["uniswap_v2", "sushiswap", "uniswap_v3"];
+
 impl Config {
     pub fn from_file<P: AsRef<Path>>(path: P) -> Result<Self> {
         let content = fs::read_to_string(&path)
@@ -43,10 +45,8 @@ impl Config {
                     anyhow::bail!("backend=rpc but no 'rpc_url' provided");
                 }
             }
-            "substreams" => {}
-            other => {
-                anyhow::bail!("Unknown backend '{other}'");
-            }
+            "substreams" => anyhow::bail!("substreams backend not yet supported"),
+            other => anyhow::bail!("Unknown backend '{other}'"),
         }
 
         if self.tokens.is_empty() {
@@ -72,6 +72,23 @@ impl Config {
                         "Invalid pool address '{}' for pair '{}'",
                         pool.address,
                         pool.name
+                    );
+                }
+
+                if pool.protocol.is_empty() {
+                    anyhow::bail!(
+                        "Protocol not specified for pool '{}' of token '{}'",
+                        pool.name,
+                        token.name
+                    );
+                }
+
+                if !SUPPORTED_PROTOCOLS.contains(&pool.protocol.as_str()) {
+                    anyhow::bail!(
+                        "Unsupported protocol '{}' for pool '{}' of token '{}'",
+                        pool.protocol,
+                        pool.name,
+                        token.name
                     );
                 }
             }
