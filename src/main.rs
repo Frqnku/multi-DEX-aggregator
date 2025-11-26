@@ -63,8 +63,7 @@ async fn main() -> anyhow::Result<()> {
 
         let valid = results
             .into_iter()
-            .inspect(|e| eprintln!("Erreur: {e:?}"))
-            .filter_map(|res| res.ok())
+            .filter_map(|res| res.inspect_err(|e| eprintln!("Error: {e:?}")).ok())
             .collect::<Vec<_>>();
 
         if valid.is_empty() {
