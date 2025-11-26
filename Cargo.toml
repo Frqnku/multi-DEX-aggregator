@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.100"
+async-trait = "0.1.89"
 ethers = "2.0.14"
 futures = "0.3.31"
 serde = "1.0.228"
