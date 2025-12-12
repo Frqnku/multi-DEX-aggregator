@@ -1,6 +1,6 @@
-# Multi-DEX-prices
+# multi-DEX-aggregator
 
-Multi-DEX-prices is a **Rust-based token price aggregator** that fetches and computes prices and approximate TVLs from multiple decentralized exchanges (DEXs). It currently supports Uniswap V2, Sushiswap, and Uniswap V3, allowing you to aggregate price data across protocols with a unified interface.
+multi-DEX-aggregator is a **Rust-based token price aggregator** that fetches and computes prices and approximate TVLs from multiple decentralized exchanges (DEXs). It currently supports Uniswap V2, Sushiswap, and Uniswap V3, allowing you to aggregate price data across protocols with a unified interface.
 
 ## 🔎 Why this project exists
 
@@ -44,8 +44,8 @@ Cargo.toml              # Rust dependency manifest
 ### Build & Run
 
 ```bash
-git clone https://github.com/Frqnku/Multi-DEX-prices.git
-cd Multi-DEX-prices
+git clone https://github.com/Frqnku/multi-DEX-aggregator.git
+cd multi-DEX-aggregator
 cargo build --release
 # Copy or create config.json
 cargo run --release
