@@ -18,7 +18,7 @@ async fn main() -> anyhow::Result<()> {
     ui::print_section_header("Configuration");
     let cfg = match Config::from_file("config.json") {
         Ok(c) => {
-            ui::print_success(&format!("Config loaded from config.json"));
+            ui::print_success("Config loaded from config.json");
             ui::print_info(&format!(
                 "RPC: {}",
                 c.rpc_url.as_ref().unwrap_or(&"N/A".to_string())
